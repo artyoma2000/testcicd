@@ -13,25 +13,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Deploy to VPS
+      - name: Build and push Docker image
         run: |
-          sshpass -p "${{ secrets.ROOT_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd /path/to/your/app  # Путь к вашему приложению на сервере
-            git pull origin main  # Или другая команда для получения обновлений
-            
-            # Убедитесь, что виртуальное окружение существует, если нет, создайте его
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv  # Создание виртуального окружения
-            fi
-            
-            source venv/bin/activate  # Активация виртуального окружения
-            
-            pip install -r requirements.txt  # Установка зависимостей
-            
-            # Запуск вашего Flask приложения
-            pkill python || true  # Убиваем старый процесс Python (если он запущен)
-            nohup python script.py &  # Запускаем ваше приложение в фоновом режиме
+          docker build -t flask-app .  # Собираем Docker-образ из текущего каталога
+          
+
+
+      - name: Deploy to VPS (via SSH)
+        run: |
+            sshpass -p "${{ secrets.ROOT_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # Останавливаем и удаляем старый контейнер, если он существует
+            docker stop flask-app || true
+            docker rm flask-app || true
+
+            # Запускаем новый контейнер
+            docker run -d --name flask-app -p 5000:5000 your-docker-image-name:latest
           EOF
