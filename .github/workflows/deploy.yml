@@ -1,36 +1,39 @@
-# This is a basic workflow to help you get started with Actions
+name: CI/CD for Flask API
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main  # или другая ветка, которую вы используете для развертывания
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  deploy:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Deploy to VPS
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            cd /path/to/your/app  # Путь к вашему приложению на сервере
+            git pull origin main  # Или другая команда для получения обновлений
+            
+            # Убедитесь, что виртуальное окружение существует, если нет, создайте его
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv  # Создание виртуального окружения
+            fi
+            
+            source venv/bin/activate  # Активация виртуального окружения
+            
+            pip install -r requirements.txt  # Установка зависимостей
+            
+            # Запуск вашего Flask приложения
+            pkill python || true  # Убиваем старый процесс Python (если он запущен)
+            nohup python script.py &  # Запускаем ваше приложение в фоновом режиме
+          EOF
