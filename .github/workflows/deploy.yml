@@ -28,5 +28,5 @@ jobs:
             docker rm flask-app || true
 
             # Run the new container
-            docker run -d --name flask-app -p 5000:5000 flask-app:latest  # Make sure the image name matches
+            docker run -d --name flask-app -p 5000:5000 flask-app  # Make sure the image name matches
           EOF
