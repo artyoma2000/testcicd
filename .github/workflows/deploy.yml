@@ -3,7 +3,7 @@ name: CI/CD for Flask API
 on:
   push:
     branches:
-      - main  # или другая ветка, которую вы используете для развертывания
+      - main  # or another branch you're using for deployment
 
 jobs:
   deploy:
@@ -18,17 +18,15 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t flask-app .  # Собираем Docker-образ из текущего каталога
-          
-
+          docker build -t flask-app .  # Build the Docker image from the current directory
 
       - name: Deploy to VPS (via SSH)
         run: |
-            sshpass -p "${{ secrets.ROOT_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # Останавливаем и удаляем старый контейнер, если он существует
+          sshpass -p "${{ secrets.ROOT_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # Stop and remove the old container if it exists
             docker stop flask-app || true
             docker rm flask-app || true
 
-            # Запускаем новый контейнер
-            docker run -d --name flask-app -p 5000:5000 your-docker-image-name:latest
+            # Run the new container
+            docker run -d --name flask-app -p 5000:5000 flask-app:latest  # Make sure the image name matches
           EOF
